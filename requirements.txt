@@ -1,0 +1,20 @@
+# Vanna 2.0 with SQLite + FastAPI server
+vanna[sqlite,fastapi]>=2.0.0
+
+# FastAPI stack
+fastapi
+uvicorn[standard]
+python-multipart
+
+# LLM provider – Groq (OpenAI-compatible)
+groq
+openai>=1.0.0
+
+# Data & viz
+plotly
+pandas
+python-dotenv
+
+# Utilities
+httpx
+pydantic>=2.0
