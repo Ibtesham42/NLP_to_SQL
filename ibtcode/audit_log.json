@@ -1,0 +1,100 @@
+[
+  {
+    "action": "lock_account",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:33:49.091072"
+  },
+  {
+    "action": "create_emergency_ticket",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:33:49.091072"
+  },
+  {
+    "action": "notify_user_security_alert",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "LOW",
+    "timestamp": "2026-03-31T10:38:28.144133"
+  },
+  {
+    "action": "lock_account",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:38:30.265260"
+  },
+  {
+    "action": "create_emergency_ticket",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:38:30.265260"
+  },
+  {
+    "action": "lock_account",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:41:06.394277"
+  },
+  {
+    "action": "create_emergency_ticket",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:41:06.394277"
+  },
+  {
+    "action": "notify_user_security_alert",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "LOW",
+    "timestamp": "2026-03-31T10:41:06.420433"
+  },
+  {
+    "action": "lock_account",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:44:56.322213"
+  },
+  {
+    "action": "create_emergency_ticket",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:44:56.322213"
+  },
+  {
+    "action": "notify_user_security_alert",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "LOW",
+    "timestamp": "2026-03-31T10:44:56.352872"
+  },
+  {
+    "action": "lock_account",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:49:38.114032"
+  },
+  {
+    "action": "create_emergency_ticket",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "HIGH",
+    "timestamp": "2026-03-31T10:49:38.114032"
+  },
+  {
+    "action": "notify_user_security_alert",
+    "intent": "ACCOUNT_HACKED",
+    "state": "awaiting_input",
+    "risk": "LOW",
+    "timestamp": "2026-03-31T10:49:38.137605"
+  }
+]

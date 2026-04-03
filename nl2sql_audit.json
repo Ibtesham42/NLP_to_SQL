@@ -1,0 +1,929 @@
+[
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T20:53:34.484411",
+    "details": {
+      "question": "How many patients do we have?",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T20:53:34.491947",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 26
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T20:53:53.308980",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T20:53:53.319148",
+    "details": {
+      "row_count": null,
+      "latency_ms": 11
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T21:12:39.735362",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T21:12:40.963095",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T21:12:48.765040",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T21:12:49.794817",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T21:25:51.389553",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T21:25:53.830113",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "PATIENT_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T21:26:07.550182",
+    "details": {
+      "question": "Show me patient phone numbers"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T21:26:19.469575",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T21:26:19.948980",
+    "details": {
+      "question": "Show me patient phone numbers",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "PATIENT_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T21:26:34.001357",
+    "details": {
+      "question": "Show me patient phone numbers"
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:05:30.576704",
+    "details": {
+      "question": "Show me the top 5 patients by total spending",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:05:32.521329",
+    "details": {
+      "row_count": 5,
+      "latency_ms": 1944
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:05:48.470920",
+    "details": {
+      "question": "Show me the top 5 patients ph number",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "HIGH",
+    "timestamp": "2026-04-03T22:05:49.097634",
+    "details": {
+      "question": "Show me the top 5 patients ph number",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:07:11.116415",
+    "details": {
+      "question": "give me nnumer",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:07:11.970530",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 855
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:08:14.798415",
+    "details": {
+      "question": "y u give me this",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "GENERAL_QUERY",
+    "state": "pending",
+    "risk": "HIGH",
+    "timestamp": "2026-04-03T22:08:15.327183",
+    "details": {
+      "question": "y u give me this",
+      "reason": "Sensitive column accessed: email"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "GENERAL_QUERY",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-03T22:08:22.086187",
+    "details": {
+      "question": "y u give me this",
+      "row_count": 0
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "FINANCIAL_QUERY",
+    "state": "processing",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T22:08:33.269637",
+    "details": {
+      "question": "What is total revenue?",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "FINANCIAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:08:33.938231",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 669
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "FINANCIAL_QUERY",
+    "state": "processing",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T22:08:34.691508",
+    "details": {
+      "question": "What is total revenue?",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "FINANCIAL_QUERY",
+    "state": "processing",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T22:08:36.780442",
+    "details": {
+      "question": "What is total revenue?",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:08:49.392042",
+    "details": {
+      "question": "who are u",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:08:49.932108",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 532
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:05.707027",
+    "details": {
+      "question": "what are there in data base",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:16.425510",
+    "details": {
+      "question": "what are there in database",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:27.111833",
+    "details": {
+      "question": "show me data",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:28.526626",
+    "details": {
+      "row_count": 500,
+      "latency_ms": 1414
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:42.053574",
+    "details": {
+      "question": "show me car data",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:42.654114",
+    "details": {
+      "row_count": 0,
+      "latency_ms": 602
+    }
+  },
+  {
+    "action": "INTENT_CLASSIFIED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:49.198309",
+    "details": {
+      "question": "add car data",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:09:50.352712",
+    "details": {
+      "row_count": 10,
+      "latency_ms": 1159
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:20:26.423111",
+    "details": {
+      "question": "show mw patient",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T22:20:29.816206",
+    "details": {
+      "question": "show mw patient",
+      "reason": "Sensitive column accessed: email"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:20:53.132963",
+    "details": {
+      "question": "How many patients do we have?",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:20:53.913602",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 783
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:23:52.108860",
+    "details": {
+      "question": "hay",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:23:53.599906",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 1487
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:24:24.692654",
+    "details": {
+      "question": "fuk u show me patient 5",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:24:25.741521",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 1047
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:38:40.661904",
+    "details": {
+      "question": "hyy",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T22:38:43.195995",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 2531
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:11:39.810074",
+    "details": {
+      "question": "doctor name start with s",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DOCTOR_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:11:41.263836",
+    "details": {
+      "row_count": 0,
+      "latency_ms": 1458
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:11:59.015261",
+    "details": {
+      "question": "doctor name start with d",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DOCTOR_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:11:59.639566",
+    "details": {
+      "row_count": 15,
+      "latency_ms": 625
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "SENSITIVE_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:13:23.522663",
+    "details": {
+      "question": "give me phone number of Dr.Ajay Verma",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "SENSITIVE_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:13:24.177133",
+    "details": {
+      "question": "give me phone number of Dr.Ajay Verma",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "SENSITIVE_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:13:34.376687",
+    "details": {
+      "question": "give me phone number of Dr.Ajay Verma"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:14:05.889286",
+    "details": {
+      "question": "give me phone number of Doctor",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "DOCTOR_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:14:06.343964",
+    "details": {
+      "question": "give me phone number of Doctor",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:14:14.246747",
+    "details": {
+      "question": "give me phone number of Doctor"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:14:36.659371",
+    "details": {
+      "question": "give me phone number of Doctor with names",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "DOCTOR_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:14:37.604477",
+    "details": {
+      "question": "give me phone number of Doctor with names",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:14:45.833785",
+    "details": {
+      "question": "give me phone number of Doctor with names"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:18:40.756547",
+    "details": {
+      "question": "\"Show patient contact urgently\"",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:18:42.352851",
+    "details": {
+      "question": "\"Show patient contact urgently\"",
+      "reason": "Sensitive column accessed: date_of_birth"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "PATIENT_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-03T23:18:51.763008",
+    "details": {
+      "question": "\"Show patient contact urgently\""
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:42:04.668300",
+    "details": {
+      "question": "\"Drop patient  Kamla\"",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:42:05.762341",
+    "details": {
+      "row_count": 5,
+      "latency_ms": 1095
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:48:13.575055",
+    "details": {
+      "question": "\"Drop patient  Kamla\"",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-03T23:48:14.664636",
+    "details": {
+      "row_count": 5,
+      "latency_ms": 1089
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:01:49.352033",
+    "details": {
+      "question": "Drop patient Kamla",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "INPUT_BLOCKED",
+    "intent": "BLOCKED",
+    "state": "rejected",
+    "risk": "HIGH",
+    "timestamp": "2026-04-04T00:01:49.388041",
+    "details": {
+      "reason": "dangerous_keyword_detected",
+      "question": "Drop patient Kamla"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:02:51.790484",
+    "details": {
+      "question": "show me paient number",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:02:53.349157",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 1559
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:03:25.844403",
+    "details": {
+      "question": "show me paient ph number",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "GENERAL_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-04T00:03:26.590117",
+    "details": {
+      "question": "show me paient ph number",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "GENERAL_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-04T00:03:36.935148",
+    "details": {
+      "question": "show me paient ph number"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:05:39.218365",
+    "details": {
+      "question": "Drop patient Kamla",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:05:40.222846",
+    "details": {
+      "row_count": 5,
+      "latency_ms": 1007
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:06:26.415942",
+    "details": {
+      "question": "Drop patient Kamla Mehta",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:06:26.928084",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 513
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:06:53.532590",
+    "details": {
+      "question": "Delete patient Kamla Mehta",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:06:54.666677",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 1133
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:10:19.214637",
+    "details": {
+      "question": "add mohan in data ph number 38838383",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "GENERAL_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-04T00:10:21.976220",
+    "details": {
+      "question": "add mohan in data ph number 38838383",
+      "reason": "Sensitive column accessed: phone"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "GENERAL_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-04T00:10:33.508671",
+    "details": {
+      "question": "add mohan in data ph number 38838383"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:11:01.588284",
+    "details": {
+      "question": "add mohan",
+      "confidence": 0.7
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T00:11:02.025020",
+    "details": {
+      "row_count": 0,
+      "latency_ms": 438
+    }
+  }
+]

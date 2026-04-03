@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 
-# ── SQL Validation ────────────────────────────────────────────────────────────
+# ── SQL Validation 
 
 FORBIDDEN_STATEMENTS = {
     "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",
@@ -72,10 +72,10 @@ def validate_sql(sql: str) -> ValidationResult:
     return ValidationResult(valid=True)
 
 
-# ── Question Validation ───────────────────────────────────────────────────────
+# ── Question Validation 
 
 MAX_QUESTION_LENGTH = 500
-MIN_QUESTION_LENGTH = 3
+MIN_QUESTION_LENGTH = 2
 
 
 def validate_question(question: str) -> ValidationResult:

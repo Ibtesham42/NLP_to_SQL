@@ -1,0 +1,8 @@
+BLOCK AccountHacked
+STATE awaiting_input
+
+ON intent=ACCOUNT_HACKED
+ACTION lock_account
+ACTION create_emergency_ticket
+ACTION notify_user_security_alert
+TRANSITION human_handoff
