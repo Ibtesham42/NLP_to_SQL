@@ -9,7 +9,7 @@ class ActionEngine:
         self.audit = AuditLogger()
         self.rollback = RollbackManager()
 
-    # 🔍 Risk classification
+    #  Risk classification
     def assess_risk(self, action_name):
         HIGH_RISK = ["lock_account", "create_emergency_ticket"]
 
@@ -17,7 +17,7 @@ class ActionEngine:
             return "HIGH"
         return "LOW"
 
-    # 🔥 Execute action + audit + register rollback
+    #  Execute action + audit + register rollback
     def commit(self, action_name, context):
         if action_name not in ACTION_MAP:
             print(f"[ERROR] Unknown action: {action_name}")

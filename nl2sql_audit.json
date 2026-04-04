@@ -925,5 +925,290 @@
       "row_count": 0,
       "latency_ms": 438
     }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:37:59.263072",
+    "details": {
+      "question": "show patient",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-04T10:38:00.716072",
+    "details": {
+      "question": "show patient",
+      "reason": "Sensitive column accessed: date_of_birth"
+    }
+  },
+  {
+    "action": "CONFIRMATION_GRANTED",
+    "intent": "PATIENT_QUERY",
+    "state": "confirmed",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-04T10:38:09.054946",
+    "details": {
+      "question": "show patient"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:38:42.900105",
+    "details": {
+      "question": "delete patient name Anjali Chopra",
+      "confidence": 0.9
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:38:43.776587",
+    "details": {
+      "row_count": 1,
+      "latency_ms": 875
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DANGEROUS_QUERY",
+    "state": "processing",
+    "risk": "CRITICAL",
+    "timestamp": "2026-04-04T10:48:21.567050",
+    "details": {
+      "question": "delete patient name Anjali Chopra"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DANGEROUS_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:48:24.164269",
+    "details": {
+      "row_count": 1,
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DANGEROUS_QUERY",
+    "state": "processing",
+    "risk": "CRITICAL",
+    "timestamp": "2026-04-04T10:48:53.157114",
+    "details": {
+      "question": "drop patient name Anjali Chopra"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DANGEROUS_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:48:54.549454",
+    "details": {
+      "row_count": 1,
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DANGEROUS_QUERY",
+    "state": "processing",
+    "risk": "CRITICAL",
+    "timestamp": "2026-04-04T10:49:12.349559",
+    "details": {
+      "question": "drop patient name Anjali Chopra idiot"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DANGEROUS_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:49:12.867515",
+    "details": {
+      "row_count": 1,
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DANGEROUS_QUERY",
+    "state": "processing",
+    "risk": "CRITICAL",
+    "timestamp": "2026-04-04T10:49:28.668338",
+    "details": {
+      "question": "drop patient name Anjali Chopra fuck"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DANGEROUS_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T10:49:29.324762",
+    "details": {
+      "row_count": 1,
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "DROP_BLOCKED",
+    "intent": "BLOCKED",
+    "state": "rejected",
+    "risk": "CRITICAL",
+    "timestamp": "2026-04-04T11:09:35.751964",
+    "details": {
+      "question": "drop patient name Anjali Chopra fuck"
+    }
+  },
+  {
+    "action": "DELETE_CONFIRMATION_REQUIRED",
+    "intent": "DESTRUCTIVE_QUERY",
+    "state": "pending",
+    "risk": "HIGH",
+    "timestamp": "2026-04-04T11:09:55.936384",
+    "details": {
+      "question": "delete patient name Anjali Chopra fuck",
+      "patient_name": "anjali chopra fuck"
+    }
+  },
+  {
+    "action": "DELETE_CONFIRMATION_REQUIRED",
+    "intent": "DESTRUCTIVE_QUERY",
+    "state": "pending",
+    "risk": "HIGH",
+    "timestamp": "2026-04-04T11:13:52.440190",
+    "details": {
+      "question": "delete patient name Anjali Chopra fuck",
+      "patient_name": "anjali chopra fuck"
+    }
+  },
+  {
+    "action": "DELETE_EXECUTED",
+    "intent": "DESTRUCTIVE_QUERY",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-04T11:14:02.429314",
+    "details": {
+      "patient_name": "anjali chopra fuck",
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:14:31.481836",
+    "details": {
+      "question": "show patient anjali"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:14:32.536570",
+    "details": {
+      "row_count": 5
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:14:50.402830",
+    "details": {
+      "question": "show patient anjali chopra"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:14:51.109999",
+    "details": {
+      "row_count": 1
+    }
+  },
+  {
+    "action": "DELETE_CONFIRMATION_REQUIRED",
+    "intent": "DESTRUCTIVE_QUERY",
+    "state": "pending",
+    "risk": "HIGH",
+    "timestamp": "2026-04-04T11:36:39.106649",
+    "details": {
+      "question": "delete patient name Anjali Chopra",
+      "patient_name": "anjali chopra",
+      "raw_input": "anjali chopra"
+    }
+  },
+  {
+    "action": "DELETE_EXECUTED",
+    "intent": "DESTRUCTIVE_QUERY",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-04T11:36:48.049826",
+    "details": {
+      "patient_name": "anjali chopra",
+      "affected_rows": 1,
+      "raw_input": "anjali chopra"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:37:11.181180",
+    "details": {
+      "question": "show patient name anjali chopra"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:37:15.423531",
+    "details": {
+      "row_count": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:37:32.551946",
+    "details": {
+      "question": "good boy"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-04T11:37:33.102542",
+    "details": {
+      "row_count": 1
+    }
   }
 ]

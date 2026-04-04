@@ -1,13 +1,12 @@
 """
 NL2SQL Clinic - Production UI
-Streamlit frontend for NL2SQL API
+Streamlit frontend for NL2SQL API with full confirmation support and proper state management
 """
 
 import streamlit as st
 import requests
 import pandas as pd
 import time
-from datetime import datetime
 
 # Page config
 st.set_page_config(
@@ -20,27 +19,25 @@ st.set_page_config(
 # API configuration
 API_URL = "http://localhost:8000"
 
-# Session state initialization
+# Session state initialization with proper defaults
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pending_confirm" not in st.session_state:
-    st.session_state.pending_confirm = None
+    st.session_state.pending_confirm = False
 if "pending_sql" not in st.session_state:
     st.session_state.pending_sql = None
-if "pending_result" not in st.session_state:
-    st.session_state.pending_result = None
+if "pending_question" not in st.session_state:
+    st.session_state.pending_question = None
+if "pending_intent" not in st.session_state:
+    st.session_state.pending_intent = None
+if "question_input" not in st.session_state:
+    st.session_state.question_input = ""
 
 # Custom CSS
 st.markdown("""
 <style>
     .stApp {
         background-color: #f5f5f5;
-    }
-    .main-header {
-        background-color: #1e3a5f;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
     }
     .chat-message {
         padding: 1rem;
@@ -76,12 +73,41 @@ st.markdown("""
         color: #dc3545;
         font-weight: bold;
     }
+    .risk-critical {
+        color: #dc3545;
+        font-weight: bold;
+        background-color: #ffe6e6;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
     .confirmation-box {
         background-color: #fff3cd;
         border-left: 4px solid #ffc107;
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
+    }
+    .delete-box {
+        background-color: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+    .status-online {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-offline {
+        background-color: #f8d7da;
+        color: #721c24;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -106,7 +132,8 @@ with st.sidebar:
         "List all doctors",
         "Show unpaid invoices",
         "How many appointments last month?",
-        "Show me patient email addresses"
+        "Show me patient email addresses",
+        "delete patient name Anjali Chopra"
     ]
     
     for query in example_queries:
@@ -121,12 +148,12 @@ with st.sidebar:
         health_response = requests.get(f"{API_URL}/health", timeout=5)
         if health_response.status_code == 200:
             health_data = health_response.json()
-            st.success(f"API Status: {health_data.get('status', 'unknown')}")
+            st.markdown(f'<span class="status-badge status-online">API Status: {health_data.get("status", "unknown")}</span>', unsafe_allow_html=True)
             st.info(f"Cache Size: {health_data.get('cache_size', 0)}")
             if health_data.get('pending_confirm'):
                 st.warning("Pending Confirmation: Yes")
     except Exception:
-        st.error("API Server: Offline")
+        st.markdown('<span class="status-badge status-offline">API Server: Offline</span>', unsafe_allow_html=True)
         st.stop()
     
     st.divider()
@@ -138,12 +165,12 @@ with st.sidebar:
     st.markdown("- Audit Logging")
     st.markdown("- Query Caching")
     st.markdown("- Rate Limiting")
+    st.markdown("- DELETE Confirmation")
 
 # Main chat area
 chat_container = st.container()
 
 with chat_container:
-    # Display chat history
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             st.markdown(f"""
@@ -152,6 +179,15 @@ with chat_container:
             </div>
             """, unsafe_allow_html=True)
         else:
+            risk_class = "risk-low"
+            risk_text = msg.get("risk", "LOW")
+            if risk_text == "MEDIUM":
+                risk_class = "risk-medium"
+            elif risk_text == "HIGH":
+                risk_class = "risk-high"
+            elif risk_text == "CRITICAL":
+                risk_class = "risk-critical"
+            
             st.markdown(f"""
             <div class="chat-message assistant-message">
                 <strong>Assistant:</strong><br>{msg["content"]}
@@ -167,25 +203,28 @@ with chat_container:
                 st.caption(f"Rows: {len(msg['df'])} | Latency: {msg.get('latency', 0)}ms")
             
             if msg.get("intent"):
-                risk_class = f"risk-{msg.get('risk', 'low').lower()}"
-                st.markdown(f'<span class="{risk_class}">Intent: {msg["intent"]} | Risk: {msg.get("risk", "LOW")}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span class="{risk_class}">Intent: {msg["intent"]} | Risk: {risk_text}</span>', unsafe_allow_html=True)
 
-# Confirmation dialog
+# Confirmation dialog - only shows when pending_confirm is True
 if st.session_state.pending_confirm:
-    with st.container():
-        st.markdown("""
-        <div class="confirmation-box">
-            <strong>⚠️ Confirmation Required</strong><br>
-            This query accesses sensitive data. Please confirm to proceed.
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.session_state.pending_sql:
-            st.code(st.session_state.pending_sql, language="sql")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Confirm", type="primary", use_container_width=True):
+    box_class = "confirmation-box"
+    if st.session_state.pending_intent and "DELETE" in str(st.session_state.pending_intent):
+        box_class = "delete-box"
+    
+    st.markdown(f"""
+    <div class="{box_class}">
+        <strong>Confirmation Required</strong><br>
+        This operation requires your confirmation to proceed.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.session_state.pending_sql:
+        st.code(st.session_state.pending_sql, language="sql")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Confirm", type="primary", use_container_width=True, key="confirm_button"):
+            with st.spinner("Executing confirmed operation..."):
                 try:
                     confirm_response = requests.post(
                         f"{API_URL}/confirm",
@@ -194,37 +233,47 @@ if st.session_state.pending_confirm:
                     )
                     if confirm_response.status_code == 200:
                         confirm_data = confirm_response.json()
+                        
                         if confirm_data.get("status") == "executed":
                             result = confirm_data.get("result", {})
                             
-                            # Add assistant response to chat
+                            message = result.get("message", "Operation executed successfully")
+                            if result.get("affected_rows") is not None:
+                                message = f"Operation executed. {result.get('affected_rows')} row(s) affected."
+                            
                             df = None
                             if result.get("rows") and result.get("columns"):
                                 df = pd.DataFrame(result["rows"], columns=result["columns"])
                             
                             st.session_state.messages.append({
                                 "role": "assistant",
-                                "content": result.get("message", "Query executed successfully"),
-                                "sql": result.get("sql_query"),
+                                "content": message,
+                                "sql": result.get("sql_query") or st.session_state.pending_sql,
                                 "df": df,
-                                "intent": st.session_state.pending_result.get("intent") if st.session_state.pending_result else None,
-                                "risk": "MEDIUM",
+                                "intent": st.session_state.pending_intent,
+                                "risk": "HIGH",
                                 "latency": 0
                             })
                             
-                            st.session_state.pending_confirm = None
+                            # Reset all pending states after successful confirmation
+                            st.session_state.pending_confirm = False
                             st.session_state.pending_sql = None
-                            st.session_state.pending_result = None
+                            st.session_state.pending_question = None
+                            st.session_state.pending_intent = None
                             st.rerun()
                 except Exception as e:
                     st.error(f"Confirmation failed: {e}")
-        
-        with col2:
-            if st.button("Cancel", use_container_width=True):
-                st.session_state.pending_confirm = None
-                st.session_state.pending_sql = None
-                st.session_state.pending_result = None
-                st.rerun()
+    
+    with col2:
+        if st.button("Cancel", use_container_width=True, key="cancel_button"):
+            # Reset all pending states on cancel
+            st.session_state.pending_confirm = False
+            st.session_state.pending_sql = None
+            st.session_state.pending_question = None
+            st.session_state.pending_intent = None
+            st.rerun()
+    
+    st.stop()
 
 # Input area
 st.divider()
@@ -243,7 +292,10 @@ with col3:
 
 if clear_button:
     st.session_state.messages = []
-    st.session_state.pending_confirm = None
+    st.session_state.pending_confirm = False
+    st.session_state.pending_sql = None
+    st.session_state.pending_question = None
+    st.session_state.pending_intent = None
     st.rerun()
 
 if send_button and question_input:
@@ -266,14 +318,19 @@ if send_button and question_input:
             if response.status_code == 200:
                 data = response.json()
                 
-                # Check if confirmation required
-                if "sensitive data" in data.get("message", "").lower():
+                # FIX: ONLY use needs_confirmation flag from backend
+                # Do NOT check message keywords - that causes false positives
+                needs_confirmation = data.get("needs_confirmation", False)
+                
+                if needs_confirmation:
+                    # Store pending confirmation state
                     st.session_state.pending_confirm = True
                     st.session_state.pending_sql = data.get("sql_query")
-                    st.session_state.pending_result = data
+                    st.session_state.pending_question = question_input
+                    st.session_state.pending_intent = data.get("intent", "DESTRUCTIVE_QUERY")
                     st.rerun()
                 else:
-                    # Normal response
+                    # Normal response - no confirmation needed
                     df = None
                     if data.get("rows") and data.get("columns"):
                         df = pd.DataFrame(data["rows"], columns=data["columns"])
@@ -288,27 +345,54 @@ if send_button and question_input:
                         "latency": latency_ms
                     })
                     
+                    # Ensure pending state is false
+                    st.session_state.pending_confirm = False
                     st.rerun()
             else:
+                error_msg = f"Error: {response.status_code}"
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get("detail", error_msg)
+                except:
+                    pass
+                
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"Error: {response.status_code} - {response.text}"
+                    "content": error_msg,
+                    "sql": None,
+                    "df": None,
+                    "intent": "ERROR",
+                    "risk": "HIGH",
+                    "latency": latency_ms
                 })
+                st.session_state.pending_confirm = False
                 st.rerun()
                 
         except requests.exceptions.ConnectionError:
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": "Error: Cannot connect to API server. Make sure it's running on port 8000."
+                "content": "Error: Cannot connect to API server. Make sure it's running on port 8000.",
+                "sql": None,
+                "df": None,
+                "intent": "ERROR",
+                "risk": "HIGH",
+                "latency": 0
             })
+            st.session_state.pending_confirm = False
             st.rerun()
         except Exception as e:
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": f"Error: {str(e)}"
+                "content": f"Error: {str(e)}",
+                "sql": None,
+                "df": None,
+                "intent": "ERROR",
+                "risk": "HIGH",
+                "latency": 0
             })
+            st.session_state.pending_confirm = False
             st.rerun()
 
 # Footer
 st.divider()
-st.caption("Powered by Groq LLM + Ibtcode Decision Engine | Version 5.0.0")
+st.caption("Powered by Groq LLM + Ibtcode Decision Engine | Version 5.0.0 | DELETE operations require confirmation")

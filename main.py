@@ -2,30 +2,14 @@
 """
 NL2SQL Clinic — FastAPI Application with Ibtcode Decision Engine
 
-BUGS FIXED vs previous version:
-  1. NL2SQL_INTENTS router was sending PATIENT_QUERY, DOCTOR_QUERY, and
-     AGGREGATION_QUERY directly to fallback — meaning "How many patients",
-     "List doctors", "Top 5 patients" NEVER reached Groq. Fixed: all
-     intents now route to the LLM. Fallback is last-resort only.
+FIXED:
+1. DELETE/DROP detection BEFORE LLM call (no unnecessary LLM calls)
+2. Proper confirmation flow for destructive operations
+3. Clean audit logging for all operations
+4. SQL validation with proper risk assessment
+5. Name extraction and cleaning for DELETE operations
 
-  2. SENSITIVE_QUERY (phone/email keywords) blocked the request BEFORE
-     Groq could generate SQL, and returned a confirmation gate with no data.
-     Fixed: Groq generates the SQL first, then if the SQL itself touches a
-     sensitive column we gate on confirmation. This lets Groq handle the
-     query correctly while still protecting PII at the SQL level.
-
-  3. "(Fallback mode)" message was being shown even for normal Groq results
-     because the route always went to _fallback_sql_generation.
-
-HOW IT WORKS NOW:
-  1. Request → rate limit + input validation
-  2. Ibtcode intent classification (for audit/logging only, NOT for routing)
-  3. Cache check
-  4. Groq LLM generates SQL  ← ALL questions go here first
-  5. Ibtcode SQL safety check → if sensitive columns, gate on confirmation
-  6. Execute SQL → return JSON
-
-Start:  uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+Start: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 """
 
 import os
@@ -34,7 +18,7 @@ import sqlite3
 import time
 import json
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -48,9 +32,8 @@ from cache import query_cache
 from logger_config import logger
 from rate_limiter import rate_limiter
 from validators import validate_question, validate_sql
-from vanna_setup import get_agent   # returns GroqDirectClient
+from vanna_setup import get_agent
 
-# Ibtcode imports
 from ibtcode.perception import detect_intent
 from ibtcode.validation import validate_perception
 from ibtcode.context import Context
@@ -58,39 +41,64 @@ from ibtcode.router import Router
 from ibtcode.audit import AuditLogger
 
 
-# ── Ibtcode instances ──────────────────────────────────────────────────────────
+# ============================================================
+# NAME CLEANING AND EXTRACTION FUNCTIONS
+# ============================================================
+
+def extract_name_from_question(text: str) -> str:
+    """Extract patient name from delete query"""
+    text = text.lower()
+    
+    # Remove keywords
+    for word in ["delete", "patient", "name", "remove", "erase"]:
+        text = text.replace(word, "")
+    
+    # Remove extra spaces
+    text = " ".join(text.split())
+    return text.strip()
+
+
+def clean_name(name: str) -> str:
+    """Remove profanity and clean name"""
+    bad_words = ["fuck", "idiot", "shit", "damn", "hell", "ass", "bitch", "crap", "bloody", "bastard"]
+    name_lower = name.lower()
+    
+    for word in bad_words:
+        name_lower = name_lower.replace(word, "")
+    
+    # Clean multiple spaces
+    name_lower = " ".join(name_lower.split())
+    return name_lower.strip()
+
+
+# ============================================================
+# IBTCODE INSTANCES
+# ============================================================
 
 ibt_context = Context()
-ibt_router  = Router()
-ibt_audit   = AuditLogger("nl2sql_audit.json")
-
-# Global pending confirmation slot
+ibt_router = Router()
+ibt_audit = AuditLogger("nl2sql_audit.json")
 pending_confirmation: Optional[Dict] = None
 
-# ── Intent Classification ──────────────────────────────────────────────────────
-# FIX: intent is now used ONLY for audit labelling.
-# It no longer controls whether the LLM is called or not.
-# Every question goes to Groq regardless of intent bucket.
+
+# ============================================================
+# INTENT CLASSIFICATION
+# ============================================================
 
 NL2SQL_INTENTS = {
-    "PATIENT_QUERY":     ["patients", "patient", "registered", "city", "gender"],
-    "DOCTOR_QUERY":      ["doctors", "doctor", "specialization", "department"],
+    "PATIENT_QUERY": ["patients", "patient", "registered", "city", "gender"],
+    "DOCTOR_QUERY": ["doctors", "doctor", "specialization", "department"],
     "APPOINTMENT_QUERY": ["appointments", "appointment", "schedule", "booking", "visit"],
-    "FINANCIAL_QUERY":   ["revenue", "invoice", "spending", "cost", "paid", "total", "amount"],
-    "SENSITIVE_QUERY":   ["phone", "email", "address", "private", "personal", "dob", "birth"],
+    "FINANCIAL_QUERY": ["revenue", "invoice", "spending", "cost", "paid", "total", "amount"],
+    "SENSITIVE_QUERY": ["phone", "email", "address", "private", "personal", "dob", "birth"],
     "AGGREGATION_QUERY": ["count", "average", "sum", "top", "max", "min", "highest"],
-    "TIME_QUERY":        ["month", "year", "date", "quarter", "trend", "weekly", "daily"],
+    "TIME_QUERY": ["month", "year", "date", "quarter", "trend", "weekly", "daily"],
 }
 
-# Columns that warrant a confirmation gate AFTER SQL is generated
 SENSITIVE_COLUMNS = {"phone", "email", "address", "date_of_birth", "dob"}
 
 
 def classify_intent(question: str) -> Dict[str, Any]:
-    """
-    Classify the question for audit purposes only.
-    Does NOT affect routing — all questions go to the LLM.
-    """
     q = question.lower()
     try:
         perception = detect_intent(q)
@@ -113,22 +121,20 @@ def classify_intent(question: str) -> Dict[str, Any]:
 
 
 def sql_risk_check(sql: str) -> Dict[str, Any]:
-    """
-    Check generated SQL for dangerous operations and sensitive column access.
-    Returns: {"valid": bool, "risk": str, "reason": str, "needs_confirmation": bool}
-    """
     if not sql:
         return {"valid": False, "risk": "HIGH", "reason": "Empty SQL", "needs_confirmation": False}
 
     sql_upper = sql.upper()
-    dangerous = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE", "TRUNCATE", "EXEC"]
+    dangerous = ["DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE", "TRUNCATE"]
+    
     for kw in dangerous:
         if re.search(rf"\b{kw}\b", sql_upper):
             return {
-                "valid": False,
-                "risk": "HIGH",
+                "valid": True,
+                "risk": "CRITICAL",
                 "reason": f"Dangerous operation: {kw}",
-                "needs_confirmation": False,
+                "needs_confirmation": True,
+                "operation": kw
             }
 
     sql_lower = sql.lower()
@@ -137,15 +143,29 @@ def sql_risk_check(sql: str) -> Dict[str, Any]:
             return {
                 "valid": True,
                 "risk": "MEDIUM",
-                "reason": f"Sensitive column accessed: {col}",
+                "reason": f"Sensitive column: {col}",
                 "needs_confirmation": True,
-                "sensitive_column": col,
             }
 
     return {"valid": True, "risk": "LOW", "reason": "SQL is safe", "needs_confirmation": False}
 
 
-# ── Audit Logger ───────────────────────────────────────────────────────────────
+def extract_patient_name_for_delete(question: str) -> Optional[str]:
+    q = question.lower()
+    patterns = [
+        r"delete\s+patient\s+name\s+([A-Za-z\s]+)",
+        r"remove\s+patient\s+([A-Za-z\s]+)",
+        r"delete\s+([A-Za-z\s]+)\s+patient",
+        r"erase\s+patient\s+([A-Za-z\s]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, q, re.IGNORECASE)
+        if match:
+            name = match.group(1).strip()
+            if name:
+                return clean_name(name)
+    return None
+
 
 def log_audit(action: str, intent: str, state: str, risk: str, details: Dict = None):
     try:
@@ -160,36 +180,35 @@ def log_audit(action: str, intent: str, state: str, risk: str, details: Dict = N
         try:
             with open("nl2sql_audit.json", "r") as f:
                 logs = json.load(f)
-        except Exception:
+        except:
             logs = []
-
         logs.append(entry)
         if len(logs) > 1000:
             logs = logs[-1000:]
-
         with open("nl2sql_audit.json", "w") as f:
             json.dump(logs, f, indent=2)
-
         logger.info(f"[AUDIT] {action} | {intent} | {risk}")
     except Exception as e:
-        logger.error(f"[AUDIT] Write failed: {e}")
+        logger.error(f"[AUDIT] Failed: {e}")
 
 
-# ── App Lifecycle ──────────────────────────────────────────────────────────────
+# ============================================================
+# APP LIFECYCLE
+# ============================================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting NL2SQL Clinic API with Ibtcode...")
+    logger.info("Starting NL2SQL Clinic API...")
     get_agent()
-    logger.info("Agent (GroqDirectClient) ready.")
+    logger.info("Agent ready.")
     yield
     logger.info("Shutting down.")
 
 
 app = FastAPI(
-    title="NL2SQL Clinic API with Ibtcode",
-    description="Natural Language to SQL — Groq LLM + Ibtcode decision engine",
-    version="4.1.0",
+    title="NL2SQL Clinic API",
+    description="Natural Language to SQL with Ibtcode",
+    version="5.0.0",
     lifespan=lifespan,
 )
 
@@ -201,13 +220,12 @@ app.add_middleware(
 )
 
 
-# ── Pydantic Models ────────────────────────────────────────────────────────────
+# ============================================================
+# PYDANTIC MODELS
+# ============================================================
 
 class ChatRequest(BaseModel):
-    question: str = Field(
-        ..., min_length=3, max_length=500,
-        example="Show me the top 5 patients by total spending",
-    )
+    question: str = Field(..., min_length=3, max_length=500)
 
     @field_validator("question")
     @classmethod
@@ -216,39 +234,35 @@ class ChatRequest(BaseModel):
 
 
 class ConfirmRequest(BaseModel):
-    confirm: bool = Field(..., description="Confirm or cancel the pending sensitive query")
-
-
-class ChartData(BaseModel):
-    data: list[Any]
-    layout: dict[str, Any]
+    confirm: bool
 
 
 class ChatResponse(BaseModel):
-    question:   str
-    message:    str
-    sql_query:  str | None = None
-    columns:    list[str] | None = None
-    rows:       list[list[Any]] | None = None
-    row_count:  int | None = None
-    chart:      ChartData | None = None
-    chart_type: str | None = None
-    cached:     bool = False
+    question: str
+    message: str
+    sql_query: str | None = None
+    columns: list[str] | None = None
+    rows: list[list[Any]] | None = None
+    row_count: int | None = None
+    cached: bool = False
     latency_ms: int = 0
-    intent:     str | None = None
-    risk:       str | None = None
+    intent: str | None = None
+    risk: str | None = None
+    needs_confirmation: bool = False
 
 
 class HealthResponse(BaseModel):
-    status:             str
-    database:           str
+    status: str
+    database: str
     agent_memory_items: int
-    cache_size:         int
-    pending_confirm:    bool
-    version:            str = "4.1.0"
+    cache_size: int
+    pending_confirm: bool
+    version: str = "5.0.0"
 
 
-# ── Database Helpers ───────────────────────────────────────────────────────────
+# ============================================================
+# DATABASE HELPERS
+# ============================================================
 
 def _db_path() -> str:
     return os.getenv("DB_PATH", "./clinic.db")
@@ -260,216 +274,155 @@ def _check_db() -> str:
         conn.execute("SELECT 1")
         conn.close()
         return "connected"
-    except Exception as e:
-        logger.error(f"DB health check failed: {e}")
+    except:
         return "error"
 
 
-def _execute_sql(sql: str) -> tuple[Optional[List[str]], Optional[List[list]], int]:
+def _execute_sql(sql: str) -> Tuple[Optional[List[str]], Optional[List[list]], int, int]:
     try:
         conn = sqlite3.connect(_db_path())
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute(sql)
-        rows = cursor.fetchall()
-        if rows:
-            columns = [d[0] for d in cursor.description]
-            data = [list(row) for row in rows]
+        
+        sql_upper = sql.strip().upper()
+        
+        if sql_upper.startswith("SELECT"):
+            rows = cursor.fetchall()
+            if rows:
+                columns = [d[0] for d in cursor.description]
+                data = [list(row) for row in rows]
+                conn.close()
+                return columns, data, len(rows), 0
             conn.close()
-            return columns, data, len(rows)
-        conn.close()
-        return None, None, 0
+            return None, None, 0, 0
+        else:
+            conn.commit()
+            affected = cursor.rowcount
+            conn.close()
+            return None, None, 0, affected
+            
     except Exception as e:
-        logger.error(f"SQL execution error: {e}")
-        return None, None, 0
+        logger.error(f"SQL error: {e}")
+        return None, None, 0, 0
 
 
-# ── Fallback SQL (last resort only) ───────────────────────────────────────────
-
-async def _fallback_sql_generation(question: str) -> Dict[str, Any]:
+def _execute_delete_patient_by_name(patient_name: str) -> int:
     """
-    Rule-based SQL — only called when Groq is genuinely unavailable.
-    NOT a routing destination for normal questions.
-    """
-    logger.warning("[FALLBACK] Groq unavailable — using rule-based SQL.")
-    q = question.lower()
-
-    # Patient queries
-    if re.search(r"how many patients|total patients|patient count", q):
-        sql = "SELECT COUNT(*) AS total_patients FROM patients"
-    elif re.search(r"registration.*trend|patient.*month|registered.*month", q):
-        sql = "SELECT strftime('%Y-%m', registered_date) AS month, COUNT(*) AS registrations FROM patients GROUP BY month ORDER BY month"
-    elif re.search(r"which city|city.*most patients", q):
-        sql = "SELECT city, COUNT(*) AS patient_count FROM patients GROUP BY city ORDER BY patient_count DESC LIMIT 1"
-    elif re.search(r"male.*female|gender.*patients", q):
-        sql = "SELECT gender, COUNT(*) AS count FROM patients GROUP BY gender"
-    elif re.search(r"visited more than|visit(ed)? (\d+|three|3) times", q):
-        sql = ("SELECT p.first_name || ' ' || p.last_name AS patient, COUNT(a.id) AS visit_count "
-               "FROM appointments a JOIN patients p ON p.id = a.patient_id "
-               "GROUP BY p.id HAVING visit_count > 3 ORDER BY visit_count DESC")
-    elif re.search(r"(list|show|all) ?(all )?patients", q):
-        sql = "SELECT first_name, last_name, city, email FROM patients LIMIT 20"
-
-    # Doctor queries
-    elif re.search(r"(list|show|all) ?(all )?doctors", q):
-        sql = "SELECT name, specialization, department FROM doctors ORDER BY specialization"
-    elif re.search(r"doctor.*most appointments|busiest doctor", q):
-        sql = ("SELECT d.name, COUNT(a.id) AS appointment_count FROM doctors d "
-               "JOIN appointments a ON a.doctor_id = d.id GROUP BY d.id ORDER BY appointment_count DESC LIMIT 1")
-    elif re.search(r"revenue.*doctor|doctor.*revenue", q):
-        sql = ("SELECT d.name, SUM(i.total_amount) AS total_revenue FROM invoices i "
-               "JOIN appointments a ON a.patient_id = i.patient_id "
-               "JOIN doctors d ON d.id = a.doctor_id GROUP BY d.name ORDER BY total_revenue DESC")
-    elif re.search(r"avg.*duration|duration.*doctor", q):
-        sql = ("SELECT d.name, ROUND(AVG(t.duration_minutes), 1) AS avg_duration_minutes "
-               "FROM treatments t JOIN appointments a ON a.id = t.appointment_id "
-               "JOIN doctors d ON d.id = a.doctor_id GROUP BY d.name ORDER BY avg_duration_minutes DESC")
-
-    # Appointment queries
-    elif re.search(r"how many appointments|total appointments", q):
-        sql = "SELECT COUNT(*) AS total_appointments FROM appointments"
-    elif re.search(r"cancelled.*last quarter|last quarter.*cancel", q):
-        sql = ("SELECT COUNT(*) AS cancelled_count FROM appointments "
-               "WHERE status = 'Cancelled' AND appointment_date >= date('now', '-3 months')")
-    elif re.search(r"no.?show", q):
-        sql = ("SELECT ROUND(100.0 * SUM(CASE WHEN status = 'No-Show' THEN 1 ELSE 0 END) / COUNT(*), 2) "
-               "AS no_show_percentage FROM appointments")
-    elif re.search(r"busiest day|day of the week", q):
-        sql = ("SELECT CASE strftime('%w', appointment_date) WHEN '0' THEN 'Sunday' "
-               "WHEN '1' THEN 'Monday' WHEN '2' THEN 'Tuesday' WHEN '3' THEN 'Wednesday' "
-               "WHEN '4' THEN 'Thursday' WHEN '5' THEN 'Friday' WHEN '6' THEN 'Saturday' END AS day_of_week, "
-               "COUNT(*) AS appointment_count FROM appointments "
-               "GROUP BY strftime('%w', appointment_date) ORDER BY appointment_count DESC")
-    elif re.search(r"monthly.*appointment|appointment.*6 months", q):
-        sql = ("SELECT strftime('%Y-%m', appointment_date) AS month, COUNT(*) AS appointments "
-               "FROM appointments WHERE appointment_date >= date('now', '-6 months') "
-               "GROUP BY month ORDER BY month")
-    elif re.search(r"last month.*appointments|appointments.*last month", q):
-        sql = ("SELECT a.id, p.first_name || ' ' || p.last_name AS patient, d.name AS doctor, "
-               "a.appointment_date, a.status FROM appointments a "
-               "JOIN patients p ON p.id = a.patient_id JOIN doctors d ON d.id = a.doctor_id "
-               "WHERE strftime('%Y-%m', a.appointment_date) = strftime('%Y-%m', date('now', '-1 month')) "
-               "ORDER BY a.appointment_date")
-
-    # Financial queries
-    elif re.search(r"revenue.*month|monthly revenue|revenue trend", q):
-        sql = ("SELECT strftime('%Y-%m', invoice_date) AS month, "
-               "SUM(total_amount) AS revenue, SUM(paid_amount) AS collected "
-               "FROM invoices GROUP BY month ORDER BY month")
-    elif re.search(r"revenue.*department|department.*revenue|compare.*revenue", q):
-        sql = ("SELECT d.department, SUM(i.total_amount) AS total_revenue FROM invoices i "
-               "JOIN appointments a ON a.patient_id = i.patient_id "
-               "JOIN doctors d ON d.id = a.doctor_id GROUP BY d.department ORDER BY total_revenue DESC")
-    elif re.search(r"total revenue|overall revenue", q):
-        sql = ("SELECT SUM(total_amount) AS total_revenue, SUM(paid_amount) AS total_collected, "
-               "SUM(total_amount - paid_amount) AS outstanding FROM invoices")
-    elif re.search(r"unpaid|overdue|pending.*invoice", q):
-        sql = ("SELECT p.first_name || ' ' || p.last_name AS patient, i.invoice_date, "
-               "i.total_amount, i.paid_amount, i.total_amount - i.paid_amount AS balance, i.status "
-               "FROM invoices i JOIN patients p ON p.id = i.patient_id "
-               "WHERE i.status IN ('Pending', 'Overdue') ORDER BY i.status, i.total_amount DESC")
-    elif re.search(r"top.*patients.*spend|patients.*spend|highest.*spend", q):
-        limit_match = re.search(r"\b(\d+)\b", q)
-        limit = int(limit_match.group(1)) if limit_match else 5
-        sql = (f"SELECT p.first_name || ' ' || p.last_name AS patient, p.city, "
-               f"SUM(i.total_amount) AS total_spending FROM invoices i "
-               f"JOIN patients p ON p.id = i.patient_id "
-               f"GROUP BY p.id ORDER BY total_spending DESC LIMIT {limit}")
-    elif re.search(r"avg.*treatment.*cost|cost.*specialization", q):
-        sql = ("SELECT d.specialization, ROUND(AVG(t.cost), 2) AS avg_cost, COUNT(t.id) AS treatment_count "
-               "FROM treatments t JOIN appointments a ON a.id = t.appointment_id "
-               "JOIN doctors d ON d.id = a.doctor_id GROUP BY d.specialization ORDER BY avg_cost DESC")
-    else:
-        logger.warning(f"[FALLBACK] No rule matched: {question!r}")
-        return {
-            "message": "Groq is currently unavailable and no matching rule was found. Please try again.",
-            "sql_query": None, "columns": None, "rows": None,
-            "row_count": None, "chart": None, "chart_type": None,
-        }
-
-    columns, rows, row_count = _execute_sql(sql)
-    if rows:
-        return {
-            "message": f"Found {row_count} result(s). (Groq unavailable — fallback mode)",
-            "sql_query": sql.strip(), "columns": columns,
-            "rows": rows, "row_count": row_count,
-            "chart": None, "chart_type": None,
-        }
-    return {
-        "message": "Query ran but returned no data.",
-        "sql_query": sql.strip(), "columns": None,
-        "rows": None, "row_count": 0,
-        "chart": None, "chart_type": None,
-    }
-
-
-# ── Main LLM Runner ────────────────────────────────────────────────────────────
-
-async def _run_llm(question: str) -> Dict[str, Any]:
-    """
-    FIX: ALL questions come here. No keyword gate before this.
-    Groq generates the SQL. Fallback only on genuine Groq failure.
+    Delete patient by full name using exact match with case-insensitive comparison
     """
     try:
-        client = get_agent()
-        sql    = client.generate_sql(question)
+        conn = sqlite3.connect(_db_path())
+        cursor = conn.cursor()
+        
+        sql = """
+            DELETE FROM patients 
+            WHERE LOWER(first_name || ' ' || last_name) = LOWER(?)
+        """
+        cursor.execute(sql, (patient_name,))
+        conn.commit()
+        affected = cursor.rowcount
+        conn.close()
+        
+        logger.info(f"DELETE executed for name: '{patient_name}', affected rows: {affected}")
+        return affected
+    except Exception as e:
+        logger.error(f"Delete error for name '{patient_name}': {e}")
+        return 0
 
+
+def _execute_delete_patient_by_like(patient_name: str) -> int:
+    """
+    Delete patient by partial name match (fallback method)
+    """
+    try:
+        conn = sqlite3.connect(_db_path())
+        cursor = conn.cursor()
+        
+        search_pattern = f"%{patient_name}%"
+        sql = """
+            DELETE FROM patients 
+            WHERE LOWER(first_name || ' ' || last_name) LIKE LOWER(?)
+        """
+        cursor.execute(sql, (search_pattern,))
+        conn.commit()
+        affected = cursor.rowcount
+        conn.close()
+        
+        logger.info(f"LIKE DELETE executed for pattern: '{patient_name}', affected rows: {affected}")
+        return affected
+    except Exception as e:
+        logger.error(f"LIKE Delete error for pattern '{patient_name}': {e}")
+        return 0
+
+
+# ============================================================
+# FALLBACK SQL
+# ============================================================
+
+async def _fallback_sql_generation(question: str) -> Dict[str, Any]:
+    logger.warning("[FALLBACK] Using rule-based SQL")
+    q = question.lower()
+
+    if re.search(r"how many patients|total patients", q):
+        sql = "SELECT COUNT(*) AS total_patients FROM patients"
+    elif re.search(r"top.*patients.*spend", q):
+        sql = "SELECT p.first_name, p.last_name, SUM(i.total_amount) as total FROM patients p JOIN invoices i ON p.id = i.patient_id GROUP BY p.id ORDER BY total DESC LIMIT 5"
+    elif re.search(r"total revenue", q):
+        sql = "SELECT SUM(total_amount) AS total_revenue FROM invoices"
+    elif re.search(r"list.*doctors", q):
+        sql = "SELECT name, specialization FROM doctors"
+    else:
+        return {"message": "Could not understand", "sql_query": None, "columns": None, "rows": None, "row_count": 0}
+
+    columns, rows, row_count, _ = _execute_sql(sql)
+    return {"message": f"Found {row_count} result(s)", "sql_query": sql, "columns": columns, "rows": rows, "row_count": row_count}
+
+
+# ============================================================
+# MAIN LLM RUNNER
+# ============================================================
+
+async def _run_llm(question: str) -> Dict[str, Any]:
+    try:
+        client = get_agent()
+        sql = client.generate_sql(question)
         validation = validate_sql(sql)
         if not validation.valid:
-            raise ValueError(f"SQL safety check failed: {validation.error}")
+            raise ValueError(f"SQL invalid: {validation.error}")
 
-        logger.info(f"[LLM] SQL: {sql[:300]}")
-        columns, rows, row_count = _execute_sql(sql)
+        logger.info(f"[LLM] SQL: {sql[:200]}")
+        columns, rows, row_count, affected = _execute_sql(sql)
 
-        if rows:
-            return {
-                "message":    f"Found {row_count} result(s).",
-                "sql_query":  sql,
-                "columns":    columns,
-                "rows":       rows,
-                "row_count":  row_count,
-                "chart":      None,
-                "chart_type": None,
-            }
-        return {
-            "message":    "Query executed — no data returned.",
-            "sql_query":  sql,
-            "columns":    None,
-            "rows":       None,
-            "row_count":  0,
-            "chart":      None,
-            "chart_type": None,
-        }
+        if columns and rows:
+            return {"message": f"Found {row_count} result(s)", "sql_query": sql, "columns": columns, "rows": rows, "row_count": row_count}
+        elif affected > 0:
+            return {"message": f"{affected} row(s) affected", "sql_query": sql, "columns": None, "rows": None, "row_count": 0}
+        else:
+            return {"message": "No data found", "sql_query": sql, "columns": None, "rows": None, "row_count": 0}
 
     except Exception as e:
-        logger.error(f"[LLM ERROR] {type(e).__name__}: {e}")
+        logger.error(f"[LLM ERROR] {e}")
         return await _fallback_sql_generation(question)
 
 
-# ── Routes ─────────────────────────────────────────────────────────────────────
+# ============================================================
+# ROUTES
+# ============================================================
 
 @app.get("/", tags=["System"])
 async def root():
     return {
-        "name":    "NL2SQL Clinic API with Ibtcode",
-        "version": "4.1.0",
-        "status":  "running",
-        "features": {
-            "llm_sql_generation":             True,
-            "intent_classification":          True,
-            "sensitive_query_confirmation":   True,
-            "audit_logging":                  True,
-            "fallback_sql":                   True,
-            "query_caching":                  True,
-            "rate_limiting":                  True,
-        },
+        "name": "NL2SQL Clinic",
+        "version": "5.0.0",
+        "status": "running",
         "endpoints": {
-            "health":  "GET /health",
-            "chat":    "POST /chat",
+            "health": "GET /health",
+            "chat": "POST /chat",
             "confirm": "POST /confirm",
-            "cache":   "DELETE /cache",
-            "logs":    "GET /logs",
-            "docs":    "GET /docs",
+            "cache": "DELETE /cache",
+            "logs": "GET /logs",
+            "docs": "GET /docs",
         },
     }
 
@@ -478,7 +431,7 @@ async def root():
 async def health():
     global pending_confirmation
     try:
-        client       = get_agent()
+        client = get_agent()
         memory_count = len(client.agent_memory) if hasattr(client, "agent_memory") else 0
         return HealthResponse(
             status="ok",
@@ -487,8 +440,7 @@ async def health():
             cache_size=query_cache.size(),
             pending_confirm=pending_confirmation is not None,
         )
-    except Exception as e:
-        logger.error(f"Health check error: {e}")
+    except:
         return HealthResponse(
             status="degraded",
             database=_check_db(),
@@ -502,75 +454,36 @@ async def health():
 async def chat(body: ChatRequest, request: Request):
     global pending_confirmation
 
-    t0        = time.perf_counter()
+    t0 = time.perf_counter()
     client_ip = request.client.host if request.client else "unknown"
 
     try:
-        # ── Rate limit ──────────────────────────────────────────────────────
         if not rate_limiter.is_allowed(client_ip):
-            raise HTTPException(
-                status_code=429,
-                detail=f"Rate limit exceeded. Max {rate_limiter._max} requests/minute.",
-            )
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
-        # ── Input validation ────────────────────────────────────────────────
         qv = validate_question(body.question)
         if not qv.valid:
             raise HTTPException(status_code=422, detail=qv.error)
 
-        logger.info(f"[CHAT] ip={client_ip} question={body.question!r}")
+        logger.info(f"[CHAT] {client_ip}: {body.question}")
 
-        # ── Intent classification (audit only, does NOT affect routing) ─────
-        intent_info = classify_intent(body.question)
-        logger.info(f"[INTENT] {intent_info['intent']} (confidence={intent_info['confidence']})")
+        q = body.question.lower()
 
-        try:
-            ibt_context.update(body.question, intent_info["intent"], "processing")
-        except Exception:
-            pass
+        # ============================================================
+        # DESTRUCTIVE OPERATION DETECTION - BEFORE LLM CALL
+        # ============================================================
 
-        log_audit(
-            action="INTENT_DETECTED",
-            intent=intent_info["intent"],
-            state="processing",
-            risk="LOW",
-            details={"question": body.question, "confidence": intent_info["confidence"]},
-        )
-
-        # ── Cache check ─────────────────────────────────────────────────────
-        cached = query_cache.get(body.question)
-        if cached is not None:
-            logger.info("[CHAT] cache hit")
-            cached["cached"]     = True
-            cached["latency_ms"] = int((time.perf_counter() - t0) * 1000)
-            cached["intent"]     = intent_info["intent"]
-            cached["risk"]       = "LOW"
-            return ChatResponse(question=body.question, **cached)
-
-        # ── LLM call — ALL questions go here ────────────────────────────────
-        # FIX: No keyword routing. Groq handles every question.
-        # 🔐 Ibtcode VALIDATION (ADD THIS BLOCK)
-
-        perception = {
-            "intent": intent_info["intent"],
-            "confidence": intent_info["confidence"],
-            "raw_input": body.question
-        }
-
-        validation = validate_perception(perception)
-
-        if validation["status"] == "REJECT":
+        if "drop" in q:
             log_audit(
-                action="INPUT_BLOCKED",
+                action="DROP_BLOCKED",
                 intent="BLOCKED",
                 state="rejected",
-                risk="HIGH",
-                details={"reason": validation["reason"], "question": body.question}
+                risk="CRITICAL",
+                details={"question": body.question}
             )
-
             return ChatResponse(
                 question=body.question,
-                message=validation["message"],
+                message="DROP operation is not allowed. This system only permits SELECT and DELETE with confirmation.",
                 sql_query=None,
                 columns=None,
                 rows=None,
@@ -578,59 +491,172 @@ async def chat(body: ChatRequest, request: Request):
                 cached=False,
                 latency_ms=int((time.perf_counter() - t0) * 1000),
                 intent="BLOCKED",
-                risk="HIGH"
-                    )
-        result = await _run_llm(body.question)
+                risk="CRITICAL",
+                needs_confirmation=False
+            )
 
-        # ── Ibtcode SQL risk check AFTER Groq generates the SQL ─────────────
-        # FIX: We check the *generated SQL* for sensitive columns, not the
-        # *question text*. This is the correct place to gate on PII access.
-        if result.get("sql_query"):
-            risk = sql_risk_check(result["sql_query"])
-            logger.info(f"[IBTCODE] Risk: {risk['risk']} — {risk['reason']}")
-
-            if not risk["valid"]:
-                log_audit(
-                    action="SQL_REJECTED",
-                    intent=intent_info["intent"],
-                    state="rejected",
-                    risk="HIGH",
-                    details={"reason": risk["reason"], "sql": result["sql_query"]},
-                )
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"SQL safety check failed: {risk['reason']}",
-                )
-
-            # Sensitive column access → ask for confirmation
-            if risk["needs_confirmation"]:
-                pending_confirmation = {
-                    "question":  body.question,
-                    "intent":    intent_info["intent"],
-                    "sql":       result["sql_query"],
-                    "result":    result,
-                    "timestamp": time.time(),
-                }
-                log_audit(
-                    action="CONFIRMATION_REQUIRED",
-                    intent=intent_info["intent"],
-                    state="pending",
-                    risk="MEDIUM",
-                    details={"question": body.question, "reason": risk["reason"]},
-                )
-                # Return a proper ChatResponse with needs_confirmation hint in message
+        delete_keywords = ["delete", "remove", "erase"]
+        if any(k in q.split() for k in delete_keywords):
+            raw_name = extract_patient_name_for_delete(body.question)
+            
+            if not raw_name:
                 return ChatResponse(
                     question=body.question,
-                    message=f"This query accesses sensitive data ({risk['reason']}). "
-                            f"POST /confirm with {{\"confirm\": true}} to proceed.",
+                    message="Please specify patient name to delete. Example: 'delete patient name Anjali Chopra'",
                     sql_query=None,
+                    columns=None,
+                    rows=None,
+                    row_count=None,
+                    cached=False,
+                    latency_ms=int((time.perf_counter() - t0) * 1000),
+                    intent="DESTRUCTIVE_QUERY",
+                    risk="HIGH",
+                    needs_confirmation=False
+                )
+            
+            cleaned_name = clean_name(raw_name)
+            extracted_name = extract_name_from_question(raw_name)
+            final_name = cleaned_name if cleaned_name else extracted_name
+            
+            if not final_name:
+                final_name = raw_name
+            
+            pending_confirmation = {
+                "question": body.question,
+                "operation": "DELETE",
+                "patient_name": final_name,
+                "raw_name": raw_name,
+                "timestamp": time.time()
+            }
+            
+            log_audit(
+                action="DELETE_CONFIRMATION_REQUIRED",
+                intent="DESTRUCTIVE_QUERY",
+                state="pending",
+                risk="HIGH",
+                details={"question": body.question, "patient_name": final_name, "raw_input": raw_name}
+            )
+            
+            return ChatResponse(
+                question=body.question,
+                message=f"WARNING: You are about to DELETE patient '{final_name}'. This action cannot be undone. Send POST /confirm with {{\"confirm\": true}} to execute.",
+                sql_query=f"DELETE FROM patients WHERE LOWER(first_name || ' ' || last_name) = LOWER('{final_name}')",
+                columns=None,
+                rows=None,
+                row_count=None,
+                cached=False,
+                latency_ms=int((time.perf_counter() - t0) * 1000),
+                intent="DESTRUCTIVE_QUERY",
+                risk="HIGH",
+                needs_confirmation=True
+            )
+
+        if "update" in q or "modify" in q or "change" in q:
+            pending_confirmation = {
+                "question": body.question,
+                "operation": "UPDATE",
+                "timestamp": time.time()
+            }
+            log_audit(
+                action="UPDATE_CONFIRMATION_REQUIRED",
+                intent="DESTRUCTIVE_QUERY",
+                state="pending",
+                risk="HIGH",
+                details={"question": body.question}
+            )
+            return ChatResponse(
+                question=body.question,
+                message="WARNING: UPDATE operation detected. This will modify data. Send POST /confirm with {\"confirm\": true} to execute.",
+                sql_query=None,
+                columns=None,
+                rows=None,
+                row_count=None,
+                cached=False,
+                latency_ms=int((time.perf_counter() - t0) * 1000),
+                intent="DESTRUCTIVE_QUERY",
+                risk="HIGH",
+                needs_confirmation=True
+            )
+
+        # ============================================================
+        # SAFE QUERIES - PROCEED WITH LLM
+        # ============================================================
+
+        intent_info = classify_intent(body.question)
+        logger.info(f"[INTENT] {intent_info['intent']}")
+
+        log_audit(
+            action="INTENT_DETECTED",
+            intent=intent_info["intent"],
+            state="processing",
+            risk="LOW",
+            details={"question": body.question},
+        )
+
+        cached = query_cache.get(body.question)
+        if cached is not None:
+            logger.info("[CHAT] cache hit")
+            cached["cached"] = True
+            cached["latency_ms"] = int((time.perf_counter() - t0) * 1000)
+            return ChatResponse(question=body.question, **cached)
+
+        result = await _run_llm(body.question)
+
+        if result.get("sql_query"):
+            risk = sql_risk_check(result["sql_query"])
+            
+            if risk.get("needs_confirmation") and risk.get("risk") == "CRITICAL":
+                pending_confirmation = {
+                    "question": body.question,
+                    "operation": risk.get("operation"),
+                    "sql": result["sql_query"],
+                    "result": result,
+                    "timestamp": time.time()
+                }
+                log_audit(
+                    action="DANGEROUS_SQL_CONFIRMATION_REQUIRED",
+                    intent=intent_info["intent"],
+                    state="pending",
+                    risk=risk["risk"],
+                    details={"question": body.question, "sql": result["sql_query"]}
+                )
+                return ChatResponse(
+                    question=body.question,
+                    message=f"WARNING: Generated SQL contains {risk.get('operation', 'DANGEROUS')} operation. Confirm to execute.",
+                    sql_query=result["sql_query"],
                     cached=False,
                     latency_ms=int((time.perf_counter() - t0) * 1000),
                     intent=intent_info["intent"],
-                    risk="MEDIUM",
+                    risk=risk["risk"],
+                    needs_confirmation=True
                 )
 
-        # ── Cache and return ─────────────────────────────────────────────────
+            if risk.get("needs_confirmation") and risk.get("risk") == "MEDIUM":
+                pending_confirmation = {
+                    "question": body.question,
+                    "operation": "SENSITIVE",
+                    "sql": result["sql_query"],
+                    "result": result,
+                    "timestamp": time.time()
+                }
+                log_audit(
+                    action="SENSITIVE_DATA_CONFIRMATION_REQUIRED",
+                    intent=intent_info["intent"],
+                    state="pending",
+                    risk=risk["risk"],
+                    details={"question": body.question, "reason": risk["reason"]}
+                )
+                return ChatResponse(
+                    question=body.question,
+                    message=f"This query accesses sensitive data: {risk['reason']}. Confirm to proceed.",
+                    sql_query=result["sql_query"],
+                    cached=False,
+                    latency_ms=int((time.perf_counter() - t0) * 1000),
+                    intent=intent_info["intent"],
+                    risk=risk["risk"],
+                    needs_confirmation=True
+                )
+
         latency = int((time.perf_counter() - t0) * 1000)
 
         if result.get("sql_query") and result.get("rows") is not None:
@@ -641,13 +667,7 @@ async def chat(body: ChatRequest, request: Request):
             intent=intent_info["intent"],
             state="completed",
             risk="LOW",
-            details={"row_count": result.get("row_count"), "latency_ms": latency},
-        )
-
-        logger.info(
-            f"[CHAT] OK latency={latency}ms "
-            f"rows={result.get('row_count')} "
-            f"intent={intent_info['intent']}"
+            details={"row_count": result.get("row_count")}
         )
 
         return ChatResponse(
@@ -656,74 +676,95 @@ async def chat(body: ChatRequest, request: Request):
             latency_ms=latency,
             intent=intent_info["intent"],
             risk="LOW",
-            **result,
+            needs_confirmation=False,
+            **result
         )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[CHAT] Unexpected error: {e}", exc_info=True)
-        log_audit(
-            action="ERROR",
-            intent="UNKNOWN",
-            state="error",
-            risk="HIGH",
-            details={"error": str(e), "question": body.question},
-        )
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)[:200]}",
-        )
+        logger.error(f"[CHAT] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/confirm", tags=["Chat"])
 async def confirm_action(confirm_data: ConfirmRequest):
-    """Execute or cancel a pending sensitive query."""
     global pending_confirmation
 
     if not pending_confirmation:
         return {"status": "error", "message": "No pending action to confirm"}
 
-    intent = pending_confirmation.get("intent", "UNKNOWN")
-
     if not confirm_data.confirm:
         log_audit(
             action="CONFIRMATION_CANCELLED",
-            intent=intent,
+            intent=pending_confirmation.get("intent", "UNKNOWN"),
             state="cancelled",
-            risk="LOW",
-            details={"question": pending_confirmation.get("question")},
+            risk="MEDIUM",
+            details={"question": pending_confirmation.get("question")}
         )
         pending_confirmation = None
-        return {"status": "cancelled", "message": "Action cancelled."}
+        return {"status": "cancelled", "message": "Operation cancelled"}
 
-    # User confirmed — execute the cached result
-    result   = pending_confirmation.get("result")
-    question = pending_confirmation.get("question", "")
-
-    log_audit(
-        action="CONFIRMATION_GRANTED",
-        intent=intent,
-        state="confirmed",
-        risk="MEDIUM",
-        details={"question": question},
-    )
-
+    operation = pending_confirmation.get("operation")
+    
+    if operation == "DELETE":
+        patient_name = pending_confirmation.get("patient_name")
+        raw_name = pending_confirmation.get("raw_name", "")
+        
+        if not patient_name:
+            if raw_name:
+                patient_name = clean_name(raw_name)
+                patient_name = extract_name_from_question(patient_name)
+            else:
+                pending_confirmation = None
+                return {"status": "error", "message": "No patient name found"}
+        
+        if patient_name:
+            affected = _execute_delete_patient_by_name(patient_name)
+            
+            if affected == 0:
+                affected = _execute_delete_patient_by_like(patient_name)
+            
+            log_audit(
+                action="DELETE_EXECUTED",
+                intent="DESTRUCTIVE_QUERY",
+                state="executed",
+                risk="HIGH",
+                details={"patient_name": patient_name, "affected_rows": affected, "raw_input": raw_name}
+            )
+            pending_confirmation = None
+            return {
+                "status": "executed",
+                "message": f"Deleted {affected} patient(s) with name '{patient_name}'",
+                "affected_rows": affected,
+                "patient_name": patient_name
+            }
+    
+    sql = pending_confirmation.get("sql")
+    if sql:
+        _, _, _, affected = _execute_sql(sql)
+        log_audit(
+            action="SQL_EXECUTED",
+            intent=pending_confirmation.get("intent", "UNKNOWN"),
+            state="executed",
+            risk="HIGH",
+            details={"sql": sql, "affected_rows": affected}
+        )
+        pending_confirmation = None
+        return {
+            "status": "executed",
+            "message": f"Operation executed. {affected} row(s) affected.",
+            "affected_rows": affected
+        }
+    
     pending_confirmation = None
-
-    if result:
-        return {"status": "executed", "result": result}
-
-    # Edge case: result wasn't cached in pending — re-run
-    result = await _run_llm(question)
-    return {"status": "executed", "result": result}
+    return {"status": "error", "message": "No valid operation found"}
 
 
 @app.delete("/cache", tags=["System"])
 async def clear_cache():
     query_cache.clear()
-    logger.info("Cache cleared.")
-    return {"message": "Cache cleared.", "status": "success"}
+    return {"message": "Cache cleared", "status": "success"}
 
 
 @app.get("/logs", tags=["System"])
@@ -732,7 +773,7 @@ async def get_logs(limit: int = 50):
         with open("nl2sql_audit.json", "r") as f:
             logs = json.load(f)
         return {"logs": logs[-limit:]}
-    except Exception:
+    except:
         return {"logs": []}
 
 
@@ -741,12 +782,10 @@ async def clear_logs():
     try:
         with open("nl2sql_audit.json", "w") as f:
             json.dump([], f)
-        return {"message": "Logs cleared.", "status": "success"}
-    except Exception:
-        return {"message": "Failed to clear logs.", "status": "error"}
+        return {"message": "Logs cleared", "status": "success"}
+    except:
+        return {"message": "Failed", "status": "error"}
 
-
-# ── Dev entrypoint ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn
