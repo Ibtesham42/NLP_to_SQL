@@ -1210,5 +1210,283 @@
     "details": {
       "row_count": 1
     }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:16:09.758345",
+    "details": {
+      "question": "heloo"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:16:11.650287",
+    "details": {
+      "row_count": 1
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:16:36.932592",
+    "details": {
+      "question": "how are you"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "GENERAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:16:37.554668",
+    "details": {
+      "row_count": 1
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:17:09.022157",
+    "details": {
+      "question": "give me patients deails"
+    }
+  },
+  {
+    "action": "SENSITIVE_DATA_CONFIRMATION_REQUIRED",
+    "intent": "PATIENT_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-05T16:17:09.511130",
+    "details": {
+      "question": "give me patients deails",
+      "reason": "Sensitive column: email"
+    }
+  },
+  {
+    "action": "SQL_EXECUTED",
+    "intent": "UNKNOWN",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-05T16:17:19.815682",
+    "details": {
+      "sql": "SELECT p.id, p.first_name, p.last_name, p.email, p.phone, p.date_of_birth, p.gender, p.city, p.registered_date FROM patients p",
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:17:52.684471",
+    "details": {
+      "question": "show me all data available in db"
+    }
+  },
+  {
+    "action": "SENSITIVE_DATA_CONFIRMATION_REQUIRED",
+    "intent": "GENERAL_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-05T16:17:53.647468",
+    "details": {
+      "question": "show me all data available in db",
+      "reason": "Sensitive column: email"
+    }
+  },
+  {
+    "action": "SQL_EXECUTED",
+    "intent": "UNKNOWN",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-05T16:18:02.804790",
+    "details": {
+      "sql": "SELECT p.id, p.first_name, p.last_name, p.email, p.phone, p.date_of_birth, p.gender, p.city, p.registered_date, \nd.id, d.name, d.specialization, d.department, d.phone, \na.id, a.patient_id, a.doctor_id, a.appointment_date, a.status, a.notes, \nt.id, t.appointment_id, t.treatment_name, t.cost, t.duration_minutes, \ni.id, i.patient_id, i.invoice_date, i.total_amount, i.paid_amount, i.status \nFROM patients p \nLEFT JOIN appointments a ON p.id = a.patient_id \nLEFT JOIN doctors d ON a.doctor_id = d.id \nLEFT JOIN treatments t ON a.id = t.appointment_id \nLEFT JOIN invoices i ON p.id = i.patient_id",
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "FINANCIAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:18:49.153408",
+    "details": {
+      "question": "show me invoices"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "FINANCIAL_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:18:49.859023",
+    "details": {
+      "row_count": 300
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:19:12.288425",
+    "details": {
+      "question": "show me doctors"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "DOCTOR_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:19:14.759026",
+    "details": {
+      "row_count": 15
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "GENERAL_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:19:43.534164",
+    "details": {
+      "question": "show me all records available in db"
+    }
+  },
+  {
+    "action": "SENSITIVE_DATA_CONFIRMATION_REQUIRED",
+    "intent": "GENERAL_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-05T16:19:44.464921",
+    "details": {
+      "question": "show me all records available in db",
+      "reason": "Sensitive column: email"
+    }
+  },
+  {
+    "action": "SQL_EXECUTED",
+    "intent": "UNKNOWN",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-05T16:19:53.032792",
+    "details": {
+      "sql": "SELECT p.id, p.first_name, p.last_name, p.email, p.phone, p.date_of_birth, p.gender, p.city, p.registered_date, \nd.id, d.name, d.specialization, d.department, d.phone, \na.id, a.patient_id, a.doctor_id, a.appointment_date, a.status, a.notes, \nt.id, t.appointment_id, t.treatment_name, t.cost, t.duration_minutes, \ni.id, i.patient_id, i.invoice_date, i.total_amount, i.paid_amount, i.status \nFROM patients p \nLEFT JOIN appointments a ON p.id = a.patient_id \nLEFT JOIN doctors d ON a.doctor_id = d.id \nLEFT JOIN treatments t ON a.id = t.appointment_id \nLEFT JOIN invoices i ON p.id = i.patient_id",
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:20:58.726721",
+    "details": {
+      "question": "How many patients do we have?"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:20:59.812177",
+    "details": {
+      "row_count": 1
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:21:23.619070",
+    "details": {
+      "question": "add patients  name abdu"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:21:24.077168",
+    "details": {
+      "row_count": 0
+    }
+  },
+  {
+    "action": "UPDATE_CONFIRMATION_REQUIRED",
+    "intent": "DESTRUCTIVE_QUERY",
+    "state": "pending",
+    "risk": "HIGH",
+    "timestamp": "2026-04-05T16:21:44.736687",
+    "details": {
+      "question": "add update patients  name abdu"
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "DOCTOR_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:33:10.479401",
+    "details": {
+      "question": "give me doctors details"
+    }
+  },
+  {
+    "action": "SENSITIVE_DATA_CONFIRMATION_REQUIRED",
+    "intent": "DOCTOR_QUERY",
+    "state": "pending",
+    "risk": "MEDIUM",
+    "timestamp": "2026-04-05T16:33:11.973668",
+    "details": {
+      "question": "give me doctors details",
+      "reason": "Sensitive column: phone"
+    }
+  },
+  {
+    "action": "SQL_EXECUTED",
+    "intent": "UNKNOWN",
+    "state": "executed",
+    "risk": "HIGH",
+    "timestamp": "2026-04-05T16:33:21.596486",
+    "details": {
+      "sql": "SELECT id, name, specialization, department, phone FROM doctors ORDER BY name",
+      "affected_rows": 0
+    }
+  },
+  {
+    "action": "INTENT_DETECTED",
+    "intent": "PATIENT_QUERY",
+    "state": "processing",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:34:52.190271",
+    "details": {
+      "question": "Top 5 patients by spending"
+    }
+  },
+  {
+    "action": "QUERY_SUCCESS",
+    "intent": "PATIENT_QUERY",
+    "state": "completed",
+    "risk": "LOW",
+    "timestamp": "2026-04-05T16:34:53.338628",
+    "details": {
+      "row_count": 5
+    }
   }
 ]

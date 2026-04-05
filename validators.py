@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 
-# ── SQL Validation 
+#  SQL Validation 
 
 FORBIDDEN_STATEMENTS = {
     "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE",

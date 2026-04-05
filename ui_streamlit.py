@@ -318,11 +318,16 @@ if send_button and question_input:
             if response.status_code == 200:
                 data = response.json()
                 
-                # FIX: ONLY use needs_confirmation flag from backend
-                # Do NOT check message keywords - that causes false positives
+                # Check if confirmation is needed from response
                 needs_confirmation = data.get("needs_confirmation", False)
                 
-                if needs_confirmation:
+                # Also check message for confirmation keywords
+                message_text = data.get("message", "").lower()
+                confirm_keywords = ["confirm", "warning", "delete", "remove", "drop", "dangerous"]
+                
+                is_confirmation_needed = needs_confirmation or any(kw in message_text for kw in confirm_keywords)
+                
+                if is_confirmation_needed:
                     # Store pending confirmation state
                     st.session_state.pending_confirm = True
                     st.session_state.pending_sql = data.get("sql_query")
